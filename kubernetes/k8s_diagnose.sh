@@ -47,7 +47,6 @@ service_status() {
     run service chronyd status | tee $diagnose_dir/service_status
 }
 
-
 #system info
 
 system_info() {
@@ -85,7 +84,6 @@ memory_info() {
     run cat /proc/zoneinfo | tee -a ${diagnose_dir}/memory_info
 }
 
-
 # check ps -ef command is hung
 check_ps_hang() {
   echo "check if ps -ef command hang" | tee -a ${diagnose_dir}/ps_command_status
@@ -113,7 +111,6 @@ check_ps_hang() {
       echo "ps -ef command works fine" | tee -a ${diagnose_dir}/ps_command_status
   fi
 }
-
 
 #system status
 system_status() {
@@ -150,7 +147,6 @@ system_status() {
          -exec echo \; | sort -rn | head | tee -a ${diagnose_dir}/system_status
     )
 }
-
 
 daemon_status() {
      run systemctl status docker -l | tee -a ${diagnose_dir}/docker_status
@@ -242,81 +238,6 @@ sandbox_runtime_status() {
     popd
 }
 
-upload_oss() {
-  if [[ "$UPLOAD_OSS" == "" ]]; then
-      return 0
-  fi
-
-  bucket_path=${UPLOAD_OSS}
-  diagnose_file=$tmpdir/diagnose_${timestamp}.tar.gz
-
-  if ! command_exists ossutil; then
-    curl -o /usr/local/bin/ossutil http://gosspublic.alicdn.com/ossutil/1.6.10/ossutil64
-    chmod u+x /usr/local/bin/ossutil
-  fi
-
-
-  region=$(curl --retry 10 --retry-delay 5 http://100.100.100.200/latest/meta-data/region-id)
-  endpoint="oss-$region.aliyuncs.com"
-  if [[ "$ACCESS_KEY_ID" == "" ]]; then
-    roleName=$(curl --retry 10 --retry-delay 5 100.100.100.200/latest/meta-data/ram/security-credentials/)
-    echo "
-[Credentials]
-        language = CH
-        endpoint = $endpoint
-[AkService]
-        ecsAk=http://100.100.100.200/latest/meta-data/Ram/security-credentials/$roleName" > ./config
-  else
-    echo "
-[Credentials]
-        language = CH
-        endpoint = $endpoint
-        accessKeyID = $ACCESS_KEY_ID
-        accessKeySecret = $ACCESS_KEY_SECRET
-" > ./config
-  fi
-  bucket_name=${bucket_path%%/*}
-  oss_endpoint=$(ossutil stat oss://$bucket_name --config-file ./config | grep ExtranetEndpoint | awk '{print $3}')
-  if [[ "$oss_endpoint" != "" ]]; then
-    endpoint=$oss_endpoint
-  fi
-  ossutil cp ./${diagnose_file} oss://$bucket_path/$diagnose_file --config-file ./config --endpoint $endpoint
-
-  if [[ "$OSS_PUBLIC_LINK" != "" ]]; then
-    ossutil sign --timeout 7200 oss://$bucket_path/$diagnose_file --config-file ./config --endpoint $endpoint
-  fi
-}
-
-parse_args() {
-    while
-        [[ $# -gt 0 ]]
-    do
-        key="$1"
-
-        case $key in
-        --oss)
-            export UPLOAD_OSS=$2
-            shift
-            ;;
-        --oss-public-link)
-            export OSS_PUBLIC_LINK="true"
-            ;;
-        --access-key-id)
-            export ACCESS_KEY_ID=$2
-            shift
-            ;;
-        --access-key-secret)
-            export ACCESS_KEY_SECRET=$2
-            shift
-            ;;
-        *)
-            echo "unknown option [$key]"
-            ;;
-        esac
-        shift
-    done
-}
-
 pd_collect() {
     os_env
     system_info
@@ -331,7 +252,6 @@ pd_collect() {
     # memory
     memory_info
 
-
     varlogmessage
     core_component "cloud-controller-manager" "app"
     core_component "kube-apiserver" "component"
@@ -344,10 +264,4 @@ pd_collect() {
     archive
 }
 
-parse_args "$@"
-
 pd_collect
-
-upload_oss
-
-echo "请上传 $tmpdir/diagnose_${timestamp}.tar.gz"

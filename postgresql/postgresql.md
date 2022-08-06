@@ -57,7 +57,7 @@ pg_archivecleanup -d $PGDATA/pg_xlog 00000001000000010000000E
 
 ### 7. 推荐内核参数
 ```bash
-vi /etc/sysctl.conf  
+vi /etc/sysctl.conf
          
 fs.aio-max-nr = 1048576                
 fs.file-max = 76724600                

@@ -195,3 +195,8 @@ echo "source <(kubectl completion bash)" >> ~/.bashrc
 ```bash
 kubectl config set-context --current --namespace=default
 ```
+
+### 20. kubectl apply vs kubectl edit
+`kubectl edit` 和 `kubectl patch` 不会更改 annotaion，所以 `kubectl edit` 的操作，在 `kubectl apply` 中看不到。
+
+参考：https://blog.atomist.com/kubernetes-apply-replace-patch/#fn1

@@ -6,3 +6,4 @@
 * [PostgreSQL](postgresql/postgresql.md)
 * [Ceph](ceph/ceph.md)
 * [Mesos](mesos)
+* [Hadoop](hadoop/hadoop.md)

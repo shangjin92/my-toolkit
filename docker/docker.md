@@ -21,3 +21,6 @@ docker network inspect bridge
 ```bash
 docker system df
 ```
+
+### 5. moby-buildkit
+docker 构建迁移到 [buildkit](https://github.com/moby/buildkit), 并发提速, 且支持更丰富的定制化能力。

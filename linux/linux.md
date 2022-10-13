@@ -29,8 +29,10 @@ df -h
 ```
 
 ### 4. perf 火焰图
+#### on-cpu
 ```bash
 # 采集10s的数据后，会在当前目录下生成perf.data文件，抓到后还需要用下面命令将其转换一下。
+# 如果采集指定PID，-a 换成 -p ${PID}
 perf record -F 99 -a -g -- sleep 10;
 perf script > out.perf
 
@@ -39,6 +41,24 @@ git clone https://github.com/brendangregg/FlameGraph.git && cd FlameGraph
 # 然后再用下面命令生成火焰图
 ./stackcollapse-perf.pl ../out.perf > ./out.folded \
       && ./flamegraph.pl ./out.folded > ./test.svg
+```
+
+#### off-cpu
+```bash
+echo 1 > /proc/sys/kernel/sched_schedstats
+
+perf record -e sched:sched_stat_sleep -e sched:sched_switch -e sched:sched_process_exit -p 17374 -g -o perf.data.raw sleep 300
+perf inject -v -s -i perf.data.raw -o perf.data
+
+perf script -F comm,pid,tid,cpu,time,period,event,ip,sym,dso | awk '
+    NF > 4 { exec = $1; period_ms = int($5 / 1000000) }
+    NF > 1 && NF <= 4 && period_ms > 0 { print $2 }
+    NF < 2 && period_ms > 0 { printf "%s\n%d\n\n", exec, period_ms }' > out.perf
+
+./stackcollapse.pl out.perf > out.folded
+./flamegraph.pl out.folded --countname=ms --title="Off-CPU Time Flame Graph" --colors=io > offcpu.svg
+
+echo 0 > /proc/sys/kernel/sched_schedstats
 ```
 
 ### 5. tcpdump
@@ -371,4 +391,18 @@ iptables -P INPUT ACCEPT
 iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 iptables -F
+```
+
+### 21. systemtap
+```bash
+https://buildlogs.centos.org/c7.1908.00.x86_64/kernel/20190808101829/3.10.0-1062.el7.x86_64/
+
+rpm -ivh kernel-debuginfo-$(uname -r).rpm
+rpm -ivh kernel-debuginfo-common-$(uname -r).rpm
+rpm -ivh kernel-devel-$(uname -r).rpm
+yum -y install systemtap
+
+stap -V
+# 测试是否安装成功
+stap -e 'probe begin{printf("Hello, World\n"); exit();}'
 ```
